@@ -42,6 +42,7 @@ const
   cBytes512 = 64;
   cBytes768 = 96;
   cBytes1024 = 128;
+  cBytes2048 = 256;
 
   { defaults }
   cDefIterations  = 20;
@@ -53,7 +54,8 @@ const
   ASN1_TYPE_Integer         = $02;
   ASN1_TAG_NUM_MASK         = $1f;
   ASN1_TYPE_HIGH_TAG_NUMBER = $1f;
-  HIGH_BIT_MASK             = $80;
+//  HIGH_BIT_MASK             = $80;
+  HIGH_BIT_MASK             = $100;
   BIT_MASK_7F               = $7F;
 
 

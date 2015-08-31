@@ -41,12 +41,14 @@ uses
 type
   PByte = ^Byte;
 
-  TLbAsymKeySize = (aks128, aks256, aks512, aks768, aks1024);
+  TLbAsymKeySize = (aks128, aks256, aks512, aks768, aks1024,aks2048);
 
 const
   cLbDefAsymKeySize = aks512;
   cLbAsymKeyBytes : array[TLbAsymKeySize] of Word =
-    (cBytes128, cBytes256, cBytes512, cBytes768, cBytes1024);
+    (cBytes128, cBytes256, cBytes512, cBytes768, cBytes1024,cBytes2048);
+    cLbAsymKeyBits : array[TLbAsymKeySize] of Word =
+    (cBytes128, cBytes256, cBytes512, cBytes768, cBytes1024,cBytes2048);
 
 type
   TLbProgressEvent = procedure(Sender : TObject; var Abort : Boolean) of object;

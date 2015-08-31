@@ -37,17 +37,18 @@ unit LbRSA;
 interface
 
 uses
-  System.Types, System.Classes, System.SysUtils, LbBigInt, LbAsym, LbCipher, LbConst;
+  System.Types, System.Classes, System.SysUtils, System.NetEncoding, LbBigInt,
+  LbAsym, LbCipher, LbConst;
 
 const
   { cipher block size constants }                                    {!!.02}
   cRSAMinPadBytes = 11;
   cRSACipherBlockSize : array[TLbAsymKeySize] of Word =
-    (cBytes128, cBytes256, cBytes512, cBytes768, cBytes1024);
+    (cBytes128, cBytes256, cBytes512, cBytes768, cBytes1024,cBytes2048);
   cRSAPlainBlockSize : array[TLbAsymKeySize] of Word =
     (cBytes128-cRSAMinPadBytes, cBytes256-cRSAMinPadBytes,
      cBytes512-cRSAMinPadBytes, cBytes768-cRSAMinPadBytes,
-     cBytes1024-cRSAMinPadBytes);
+     cBytes1024-cRSAMinPadBytes,cBytes2048-cRSAMinPadBytes);
 
 type
   TRSABlockType = (bt00, bt01, bt02);
@@ -63,6 +64,8 @@ type
   TRSACipherBlock768 = array[0..cBytes768-1] of Byte;
   PRSACipherBlock1024 = ^TRSACipherBlock1024;
   TRSACipherBlock1024 = array[0..cBytes1024-1] of Byte;
+  PRSACipherBlock2048 = ^TRSACipherBlock2048;
+  TRSACipherBlock2048 = array[0..cBytes2048-1] of Byte;
 
   { plaintext block types }                                          {!!.02}
   PRSAPlainBlock128 = ^TRSAPlainBlock128;
@@ -75,13 +78,15 @@ type
   TRSAPlainBlock768 = array[0..cBytes768-12] of Byte;
   PRSAPlainBlock1024 = ^TRSAPlainBlock1024;
   TRSAPlainBlock1024 = array[0..cBytes1024-12] of Byte;
+  PRSAPlainBlock2048 = ^TRSAPlainBlock2048;
+  TRSAPlainBlock2048 = array[0..cBytes2048-12] of Byte;
 
   { default block type }
   TRSAPlainBlock  = TRSAPlainBlock512;
   TRSACipherBlock = TRSACipherBlock512;
 
   { signature types }
-  TRSASignatureBlock = array[0..cBytes1024-1] of Byte;
+  TRSASignatureBlock = array[0..cBytes2048-1] of Byte;
   TRSAHashMethod  = (hmMD5, hmSHA1);
 
   TLbRSAGetSignatureEvent = procedure(Sender : TObject; var Sig : TRSASignatureBlock) of object;
@@ -112,10 +117,21 @@ type
     property ExponentAsString : string read GetExponentAsString write SetExponentAsString;
   end;
 
+  TLbRSAKeyEx = class(TLbRSAKey)
+  private
+    function GetAsBase64: string;
+    procedure SetAsBase64(const Value: string);
+  public
+    //constructor Create(aKeySize : TLbAsymKeySize); override; overload;
+    constructor Create(const KeyAsBase64: string); overload;
+    property AsBase64: string read GetAsBase64 write SetAsBase64;
+
+  end;
+
   TLbRSA = class(TLbAsymmetricCipher)
   strict private
-    FPrivateKey : TLbRSAKey;
-    FPublicKey : TLbRSAKey;
+    FPrivateKey : TLbRSAKeyEx;
+    FPublicKey : TLbRSAKeyEx;
     FPrimeTestIterations : Byte;
   strict protected
     procedure SetKeySize(Value : TLbAsymKeySize); override;
@@ -131,8 +147,8 @@ type
     procedure GenerateKeyPair; override;
     function  OutBufSizeNeeded(InBufSize : Cardinal) : Cardinal; override;
     procedure RSACallback(var Abort : Boolean);
-    property PrivateKey : TLbRSAKey read FPrivateKey;
-    property PublicKey : TLbRSAKey read FPublicKey;
+    property PrivateKey : TLbRSAKeyEx read FPrivateKey;
+    property PublicKey : TLbRSAKeyEx read FPublicKey;
   published
     property PrimeTestIterations : Byte read FPrimeTestIterations write FPrimeTestIterations;
     property KeySize;
@@ -141,8 +157,8 @@ type
 
   TLbRSASSA = class(TLbSignature)
   strict private
-    FPrivateKey : TLbRSAKey;
-    FPublicKey : TLbRSAKey;
+    FPrivateKey : TLbRSAKeyEx;
+    FPublicKey : TLbRSAKeyEx;
     FHashMethod : TRSAHashMethod;
     FPrimeTestIterations : Byte;
     FSignature  : TLbBigInt;
@@ -168,8 +184,8 @@ type
     function  VerifyStream(AStream : TStream) : Boolean; override;
     function  VerifyString(const AStr : string) : Boolean; override;
   public
-    property PrivateKey : TLbRSAKey read FPrivateKey;
-    property PublicKey : TLbRSAKey read FPublicKey;
+    property PrivateKey : TLbRSAKeyEx read FPrivateKey;
+    property PublicKey : TLbRSAKeyEx read FPublicKey;
     property Signature : TLbBigInt read FSignature;
 
   published
@@ -200,8 +216,8 @@ type
     class function EncryptRSA512(PublicKey : TLbRSAKey; const InBlock : TRSAPlainBlock512; var OutBlock : TRSACipherBlock512): Integer; static;
     class function EncryptRSA768(PublicKey : TLbRSAKey; const InBlock : TRSAPlainBlock768; var OutBlock : TRSACipherBlock768): Integer; static;
     class function EncryptRSAEx(PublicKey : TLbRSAKey; pInBlock, pOutBlock : PByteArray; InDataSize : Integer): Integer; static;
-    class procedure GenerateRSAKeys(var PrivateKey, PublicKey : TLbRSAKey); static;
-    class procedure GenerateRSAKeysEx(var PrivateKey, PublicKey : TLbRSAKey; KeySize : TLbAsymKeySize; PrimeTestIterations : Byte; Callback : TLbRSACallback); static;
+    class procedure GenerateRSAKeys(var PrivateKey, PublicKey : TLbRSAKeyEx); static;
+    class procedure GenerateRSAKeysEx(var PrivateKey, PublicKey : TLbRSAKeyEx; KeySize : TLbAsymKeySize; PrimeTestIterations : Byte; Callback : TLbRSACallback); static;
     class procedure RSAEncryptFile(const InFile, OutFile : string; Key : TLbRSAKey; Encrypt : Boolean); static;
     class procedure RSAEncryptStream(InStream, OutStream : TStream; Key : TLbRSAKey; Encrypt : Boolean); static;
     class function RSAEncryptBytes(const InBytes: TBytes; Key: TLbRSAKey; Encrypt: Boolean): TBytes; static;
@@ -332,8 +348,8 @@ constructor TLbRSA.Create(AOwner : TComponent);
 begin
   inherited Create(AOwner);
 
-  FPrivateKey := TLbRSAKey.Create(FKeySize);
-  FPublicKey  := TLbRSAKey.Create(FKeySize);
+  FPrivateKey := TLbRSAKeyEx.Create(FKeySize);
+  FPublicKey  := TLbRSAKeyEx.Create(FKeySize);
   FPrimeTestIterations := cDefIterations;
 end;
 
@@ -434,8 +450,8 @@ const
 begin
   inherited Create(AOwner);
 
-  FPrivateKey := TLbRSAKey.Create(FKeySize);
-  FPublicKey  := TLbRSAKey.Create(FKeySize);
+  FPrivateKey := TLbRSAKeyEx.Create(FKeySize);
+  FPublicKey  := TLbRSAKeyEx.Create(FKeySize);
   FSignature  := TLbBigInt.Create(cLbAsymKeyBytes[FKeySize]);
   FHashMethod := cDefHashMethod;
   FPrimeTestIterations := cDefIterations;
@@ -878,14 +894,14 @@ begin
 end;
 
 { == Public RSA routines =================================================== }
-class procedure TRSA.GenerateRSAKeys(var PrivateKey, PublicKey : TLbRSAKey);
+class procedure TRSA.GenerateRSAKeys(var PrivateKey, PublicKey : TLbRSAKeyEx);
   { create RSA public/private key pair with default settings }
 begin
   GenerateRSAKeysEx(PrivateKey, PublicKey, cLbDefAsymKeySize, cDefIterations, nil);
 end;
 
 
-class procedure TRSA.GenerateRSAKeysEx(var PrivateKey, PublicKey : TLbRSAKey; KeySize : TLbAsymKeySize; PrimeTestIterations : Byte; Callback : TLbRSACallback);
+class procedure TRSA.GenerateRSAKeysEx(var PrivateKey, PublicKey : TLbRSAKeyEx; KeySize : TLbAsymKeySize; PrimeTestIterations : Byte; Callback : TLbRSACallback);
   { create RSA key pair speciying size and prime test iterations and }
   { callback function }
 var
@@ -897,8 +913,8 @@ var
   n : TLbBigInt;
   Abort : Boolean;
 begin
-  PrivateKey := TLbRSAKey.Create(KeySize);
-  PublicKey := TLbRSAKey.Create(KeySize);
+  PrivateKey := TLbRSAKeyEx.Create(KeySize);
+  PublicKey := TLbRSAKeyEx.Create(KeySize);
 
   { create temp variables }
   p1q1 := TLbBigInt.Create(cLbAsymKeyBytes[KeySize]);
@@ -967,13 +983,13 @@ end;
 class procedure TRSA.RSADecodeBlock(biBlock : TLbBigInt);
 var
   i : DWord;
-  Buf : TRSAPlainBlock1024;
+  Buf : TRSAPlainBlock2048;
 begin
   { verify block format }
   i := biBlock.Size;
   if (i < cRSAMinPadBytes) then
     raise Exception.Create(sRSADecodingErrBTS);
-  if (i > cBytes1024) then
+  if (i > cBytes2048) then
     raise Exception.Create(sRSADecodingErrBTL);
   if (biBlock.GetByteValue(i) <> Byte(bt01)) and (biBlock.GetByteValue(i) <> Byte(bt02)) then
     raise Exception.Create(sRSADecodingErrIBT);
@@ -1057,7 +1073,7 @@ var
   PlainBlockSize, CipherBlockSize : Integer;
   i : Integer;
   pInBlk, pOutBlk       : Pointer;
-  PlainBlock, CipherBlock : TRSACipherBlock1024;
+  PlainBlock, CipherBlock : TRSACipherBlock2048;
 begin
   PlainBlockSize := cRSAPlainBlockSize[Key.KeySize];
   CipherBlockSize := cRSACipherBlockSize[Key.KeySize];
@@ -1152,6 +1168,82 @@ begin
   biBlock.AppendByte($00);
 end;
 
+
+{ TLbRSAKeyEx }
+
+function WriteBIntToStream(const BInt: TlbBigInt; const AStream: TStream)
+  : integer; inline;
+begin
+  AStream.WriteData(BInt.Int.IntBuf.dwLen);
+  AStream.Write(BInt.Int.IntBuf.pBuf^, BInt.Int.IntBuf.dwLen);
+end;
+
+function ReadBIntFromStream(const BInt: TlbBigInt; const AStream: TStream)
+  : integer; inline;
+var
+  buf: TBytes;
+  len: integer;
+begin
+  AStream.ReadData(len);
+  setlength(buf, len);
+  try
+    AStream.Read(buf, len);
+    BInt.CopyBuffer(buf[0], len);
+  finally
+    setlength(buf, 0);
+  end;
+end;
+
+constructor TLbRSAKeyEx.Create(const KeyAsBase64: string);
+begin
+  Create(aks128);
+  AsBase64 := KeyAsBase64;
+end;
+
+function TLbRSAKeyEx.GetAsBase64: string;
+var
+  ms: TmemoryStream;
+begin
+  ms := TmemoryStream.Create;
+  try
+    WriteBIntToStream(Modulus, ms);
+    WriteBIntToStream(Exponent, ms);
+    Result := TnetEncoding.Base64.EncodeBytesToString(ms.Memory, ms.Size);
+  finally
+    ms.Free;
+  end;
+end;
+
+procedure TLbRSAKeyEx.SetAsBase64(const Value: string);
+var
+  ms: TmemoryStream;
+  buf: TBytes;
+
+  procedure SetKeySize;
+  begin
+    case Modulus.Int.dwUsed of
+      cBytes128:KeySize:= aks128;
+      cBytes256:KeySize:= aks256;
+      cBytes512:KeySize:= aks512;
+      cBytes768:KeySize:= aks768;
+      cBytes1024:KeySize:= aks1024;
+      cBytes2048:KeySize:= aks2048;
+    end;
+  end;
+
+begin
+  ms := TmemoryStream.Create;
+  try
+    buf := TnetEncoding.Base64.DecodeStringToBytes(Value);
+    ms.WriteBuffer(buf, length(buf));
+    ms.Position := 0;
+    ReadBIntFromStream(Modulus, ms);
+    ReadBIntFromStream(Exponent, ms);
+    SetKeySize;
+  finally
+    ms.Free;
+  end;
+end;
 
 end.
 
