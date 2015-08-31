@@ -180,7 +180,16 @@ type
 { message digest blocks }
 type
   TMD5Digest  = array [0..15] of Byte;         { 128 bits - MD5 }
-  TSHA1Digest = array [0..19] of Byte;         { 160 bits - SHA-1 }
+  TSHA1DigestArray = array [0..19] of Byte;         { 160 bits - SHA-1 }
+
+  TSHA1Digest = packed record
+  public
+    procedure GetHASH(const Bytes: TBytes); overload;
+    procedure GetHASH(const Buf; const BufSize: integer); overload;
+  case boolean of
+    false: (Digest: TSHA1DigestArray);
+    true: (DWords: array[0..4] of cardinal);
+  end;
 
 
 { message digest context types }
@@ -931,7 +940,7 @@ begin
     sdHash[ 3 ] := SHA1SwapByteOrder( sdHash[ 3 ]);
     sdHash[ 4 ] := SHA1SwapByteOrder( sdHash[ 4 ]);
 
-    Move( sdHash, Digest, Sizeof( Digest ));
+    Move( sdHash, Digest.Digest, Sizeof( Digest ));
     SHA1Clear( Context );
   end;
 end;
@@ -2064,6 +2073,18 @@ begin
     p1 := p1 + 1;
     p2 := p2 + 1;
   end;
+end;
+
+{ TSHA1Digest }
+
+procedure TSHA1Digest.GetHASH(const Bytes: TBytes);
+begin
+  TSHA1.HashSHA1(self,Bytes[0],length(Bytes));
+end;
+
+procedure TSHA1Digest.GetHASH(const Buf; const BufSize: integer);
+begin
+  TSHA1.HashSHA1(self,Buf,BufSize);
 end;
 
 end.
