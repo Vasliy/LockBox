@@ -226,7 +226,7 @@ type
 implementation
 
 uses
-  System.Math, LbUtils, LbBytes, LbProc;
+  System.Math, LbUtils, LbBytes, LbProc, LbBigInt.Helper;
 
 { TLbRSAKey }
 
@@ -1025,9 +1025,11 @@ begin
     repeat
       dwLen := Min(dwSize, Key.Modulus.Size);
       tmp2.CopyLen(tmp1, dwLen);
+      tmp2.Base10string;
       tmp2.PowerAndMod(Key.Exponent, Key.Modulus);
 
       biBlock.Append(tmp2);
+      biBlock.Base10string;
       tmp1.Shr_(dwLen * 8);
       dwSize := dwSize - dwLen;
     until (dwSize <= 0);
@@ -1146,7 +1148,7 @@ class procedure TRSA.RSAFormatBlock(biBlock : TLbBigInt; BlockType : TRSABlockTy
 begin
   if (biBlock.Int.IntBuf.dwLen - biBlock.Int.dwUsed) < 11 then       {!!.02}
     raise Exception.Create(sRSAEncodingErr);                         {!!.02}
-
+  {format AA..AA 00 MM..MM 02 00 , AA-data 00 - separator MM-random bytes}
   { separate data from padding }
   biBlock.AppendByte($00);
 
@@ -1155,7 +1157,7 @@ begin
     if (BlockType = bt01) then
       biBlock.AppendByte(Byte($FF))
     else
-      biBlock.AppendByte(Byte(Random($FD) + 1));
+      biBlock.AppendByte(Byte(55{Random($FD) + 1}));
   end;
 
   { append tag }
