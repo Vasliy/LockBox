@@ -184,8 +184,7 @@ type
 
   TSHA1Digest = packed record
   public
-    procedure GetHASH(const Bytes: TBytes); overload;
-    procedure GetHASH(const Buf; const BufSize: integer); overload;
+    procedure GetHASH(const ABytes: TBytes; const ALen: integer);
   case boolean of
     false: (Digest: TSHA1DigestArray);
     true: (DWords: array[0..4] of cardinal);
@@ -2077,14 +2076,9 @@ end;
 
 { TSHA1Digest }
 
-procedure TSHA1Digest.GetHASH(const Bytes: TBytes);
+procedure TSHA1Digest.GetHASH(const ABytes: TBytes; const ALen: integer);
 begin
-  TSHA1.HashSHA1(self,Bytes[0],length(Bytes));
-end;
-
-procedure TSHA1Digest.GetHASH(const Buf; const BufSize: integer);
-begin
-  TSHA1.HashSHA1(self,Buf,BufSize);
+  TSHA1.HashSHA1(self,ABytes[0],ALen);
 end;
 
 end.
